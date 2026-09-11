@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tu pase de entrada</title>
+<style>
+  body { font-family: Arial, sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f4; margin: 0; }
+  .pase { background: #fff; border-radius: 12px; padding: 30px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.1); box-sizing: border-box; }
+  h2 { color: #0b5394; margin-bottom: 4px; }
+  .folio { font-size: 22px; font-weight: bold; letter-spacing: 2px; margin: 14px 0; }
+  img { margin: 10px 0; max-width: 100%; }
+  button { background: #0b5394; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; }
+  #cargando { color: #555; }
+  @media print { button { display: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<div class="pase" id="pase">
+  <p id="cargando">Cargando tu pase...</p>
+</div>
+
+<script>
+  // 1) Pega aquí la URL del backend (Paso 3 del README), ej:
+  //    https://script.google.com/macros/s/XXXXXXXX/exec
+  const API_URL = 'PEGA_AQUI_LA_URL_DEL_API';
+  // Nota: el nombre y la fecha del evento NO se configuran aquí — los entrega el backend
+  // según el evento activo (menú "Configurar evento actual" en el Sheet), así que este
+  // archivo no necesita editarse cuando cambie el evento.
+
+  const params = new URLSearchParams(window.location.search);
+  const folio = params.get('folio') || '';
+  const contenedor = document.getElementById('pase');
+
+  if (!folio) {
+    contenedor.innerHTML = '<h2>Falta el folio</h2><p>Abre este enlace desde el correo de confirmación que recibiste.</p>';
+  } else {
+    fetch(API_URL + '?accion=pase&folio=' + encodeURIComponent(folio))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          contenedor.innerHTML =
+            '<h2>' + escapeHtml(data.evento) + '</h2>' +
+            '<p>' + escapeHtml(data.fecha) + '</p><hr>' +
+            '<p>Nombre:</p><p><strong>' + escapeHtml(data.nombre) + '</strong></p>' +
+            '<p>Folio:</p><div class="folio">' + escapeHtml(data.folio) + '</div>' +
+            '<img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' +
+              encodeURIComponent(String(data.folio)) + '" width="220" height="220" alt="Código QR">' +
+            '<p style="font-size:13px; color:#555;">Presenta este pase (impreso o en tu celular) para que sea escaneado al llegar al evento.</p>' +
+            '<button onclick="window.print()">Imprimir / Guardar como PDF</button>';
+        } else {
+          contenedor.innerHTML = '<h2>Folio no encontrado</h2><p>' + escapeHtml(data.mensaje || '') + '</p>';
+        }
+      })
+      .catch(function () {
+        contenedor.innerHTML = '<h2>No se pudo cargar tu pase</h2><p>Intenta de nuevo más tarde o contacta al comité organizador.</p>';
+      });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
